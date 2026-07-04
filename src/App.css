@@ -537,6 +537,39 @@
   stroke-dasharray: 3 2;
 }
 
+/* city layer */
+.city-layer {
+  pointer-events: none;
+}
+.city-dot {
+  fill: var(--ink);
+  stroke: var(--paper);
+  stroke-width: 0.8;
+}
+.city-cap-ring {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.city-cap-dot {
+  fill: var(--ink);
+}
+.city-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  fill: var(--ink-soft);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  dominant-baseline: middle;
+}
+.city-label--cap {
+  font-weight: 600;
+  fill: var(--ink);
+}
+
 .worldmap-zoom {
   position: absolute;
   top: 0.7rem;

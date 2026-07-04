@@ -3,22 +3,25 @@
 // - Pan by dragging, zoom with the wheel / pinch / on-screen controls.
 // - Level of detail: a coarse 1:110m outline when zoomed out, swapping to the
 //   detailed 1:50m coastlines once you zoom in.
+// - A city layer (Natural Earth populated places) fades in as you zoom —
+//   capitals first, then smaller cities — with constant-size ink markers.
 // - `focusCca3` smoothly frames a country so it fills ~60% of the viewport,
 //   keeping its neighbours in view for context.
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { geoNaturalEarth1, geoPath } from 'd3-geo';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { geoNaturalEarth1, geoPath, geoCentroid, geoBounds } from 'd3-geo';
 import { select } from 'd3-selection';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
 import 'd3-transition';
 import { mapFeatures50, mapFeatures110, byCca3 } from '../lib/countries.js';
+import cityData from '../data/cities.json';
 
 const W = 900;
 const H = 470;
 const MIN_K = 1;
-const MAX_K = 14;
+const MAX_K = 16;
 const DETAIL_THRESHOLD = 2.4; // zoom scale at which we swap to 1:50m detail
 
-// One shared projection so both detail levels line up exactly.
+// One shared projection so both detail levels and the city layer line up.
 const projection = geoNaturalEarth1().fitExtent(
   [
     [8, 8],
@@ -37,17 +40,71 @@ function buildPaths(features) {
 }
 const PATHS = { hi: buildPaths(mapFeatures50), lo: buildPaths(mapFeatures110) };
 
-// Projected bounding box per country (from the detailed set) for auto-framing.
-const BOUNDS = {};
+// Pre-project cities into base map coords, with the zoom level at which each
+// dot / label should appear (capitals reveal earlier than ordinary cities).
+const CITIES = cityData
+  .map((c) => {
+    const pt = projection([c.lng, c.lat]);
+    if (!pt) return null;
+    const dotMinK = c.cap ? 1.5 + c.rank * 0.15 : 2.2 + c.rank * 0.55;
+    return {
+      name: c.name,
+      cap: c.cap === 1,
+      rank: c.rank,
+      x: pt[0],
+      y: pt[1],
+      dotMinK,
+      labelMinK: c.cap ? dotMinK + 0.5 : dotMinK + 1.6,
+    };
+  })
+  .filter(Boolean);
+
+// Precompute an auto-frame transform per country. We pick the country's main
+// landmass (largest polygon by *spherical* extent, so an antimeridian-crossing
+// bbox can't masquerade as huge) and size the zoom from its angular extent using
+// the projection's local pixels-per-degree — robust for Russia, Fiji, USA→48, etc.
+function angularSize(featureLike) {
+  const [[w, s], [e, n]] = geoBounds(featureLike);
+  const degW = e < w ? e + 360 - w : e - w; // handle antimeridian wrap
+  return [Math.max(degW, 0.02), Math.max(n - s, 0.02)];
+}
+function focusFor(feature) {
+  const g = feature.geometry;
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+  // Pick the main landmass by vertex count — robust to antimeridian wraps that
+  // can inflate a polygon's apparent bounding-box area.
+  let best = null;
+  let bestPts = -1;
+  for (const poly of polys) {
+    const pts = poly[0].length;
+    if (pts > bestPts) {
+      bestPts = pts;
+      best = { type: 'Feature', geometry: { type: 'Polygon', coordinates: poly } };
+    }
+  }
+  if (!best) return null;
+  const [dw, dh] = angularSize(best);
+  const c = geoCentroid(best);
+  const [cx, cy] = projection(c);
+  // local scale of the projection at the centroid
+  const px = projection([c[0] + 0.5, c[1]]);
+  const py = projection([c[0], c[1] + 0.5]);
+  const pxPerLon = Math.max(Math.abs(px[0] - cx) / 0.5, 0.01);
+  const pxPerLat = Math.max(Math.abs(py[1] - cy) / 0.5, 0.01);
+  const projW = dw * pxPerLon;
+  const projH = dh * pxPerLat;
+  const k = Math.max(MIN_K, Math.min(MAX_K, 0.6 * Math.min(W / projW, H / projH)));
+  return { k, tx: W / 2 - k * cx, ty: H / 2 - k * cy, area: bestPts };
+}
+const FOCUS = {};
+const FOCUS_AREA = {};
 for (const f of mapFeatures50) {
-  const b = pathGen.bounds(f);
-  const prev = BOUNDS[f.country.cca3];
-  BOUNDS[f.country.cca3] = prev
-    ? [
-        [Math.min(prev[0][0], b[0][0]), Math.min(prev[0][1], b[0][1])],
-        [Math.max(prev[1][0], b[1][0]), Math.max(prev[1][1], b[1][1])],
-      ]
-    : b;
+  const r = focusFor(f);
+  if (!r) continue;
+  if (r.area > (FOCUS_AREA[f.country.cca3] ?? -1)) {
+    FOCUS_AREA[f.country.cca3] = r.area;
+    FOCUS[f.country.cca3] = r;
+  }
 }
 
 export default function WorldMap({
@@ -60,15 +117,15 @@ export default function WorldMap({
   onCountryHover,
 }) {
   const svgRef = useRef(null);
-  const gRef = useRef(null);
   const zoomRef = useRef(null);
   const [hovered, setHovered] = useState(null);
-  const [scale, setScale] = useState(1);
+  const [t, setT] = useState({ k: 1, x: 0, y: 0 });
 
-  const detail = scale >= DETAIL_THRESHOLD ? 'hi' : 'lo';
+  const detail = t.k >= DETAIL_THRESHOLD ? 'hi' : 'lo';
   const paths = PATHS[detail];
+  const hoveredCca3 = hovered?.cca3 ?? null;
 
-  // Set up the zoom behavior once.
+  // Set up the zoom behavior once. All transform changes flow through here.
   useEffect(() => {
     const svg = select(svgRef.current);
     const zb = d3zoom()
@@ -78,12 +135,11 @@ export default function WorldMap({
         [W, H],
       ])
       .on('zoom', (event) => {
-        const t = event.transform;
-        if (gRef.current) gRef.current.setAttribute('transform', t.toString());
-        setScale(t.k);
+        const { k, x, y } = event.transform;
+        setT({ k, x, y });
       });
     svg.call(zb);
-    svg.on('dblclick.zoom', null); // dbl-click shouldn't fight the quiz
+    svg.on('dblclick.zoom', null);
     zoomRef.current = zb;
     return () => svg.on('.zoom', null);
   }, []);
@@ -93,18 +149,13 @@ export default function WorldMap({
     const svg = select(svgRef.current);
     const zb = zoomRef.current;
     if (!zb) return;
-    if (!focusCca3 || !BOUNDS[focusCca3]) {
+    const f = FOCUS[focusCca3];
+    if (!focusCca3 || !f) {
       svg.transition().duration(650).call(zb.transform, zoomIdentity);
       return;
     }
-    const [[x0, y0], [x1, y1]] = BOUNDS[focusCca3];
-    const dx = Math.max(x1 - x0, 4);
-    const dy = Math.max(y1 - y0, 4);
-    const cx = (x0 + x1) / 2;
-    const cy = (y0 + y1) / 2;
-    const k = Math.max(MIN_K, Math.min(MAX_K, 0.6 * Math.min(W / dx, H / dy)));
-    const t = zoomIdentity.translate(W / 2 - k * cx, H / 2 - k * cy).scale(k);
-    svg.transition().duration(750).call(zb.transform, t);
+    const tf = zoomIdentity.translate(f.tx, f.ty).scale(f.k);
+    svg.transition().duration(750).call(zb.transform, tf);
   }, [focusCca3]);
 
   const handleEnter = useCallback(
@@ -128,7 +179,72 @@ export default function WorldMap({
     if (zoomRef.current) svg.transition().duration(500).call(zoomRef.current.transform, zoomIdentity);
   };
 
-  const hoveredCca3 = hovered?.cca3 ?? null;
+  // Country paths only depend on the data/hover state, not the transform, so
+  // they aren't rebuilt while panning or zooming.
+  const pathEls = useMemo(
+    () =>
+      paths.map((p) => {
+        const state = classify(p.cca3, {
+          highlightCca3,
+          revealCca3,
+          wrongCca3,
+          hoveredCca3,
+          interactive,
+        });
+        return (
+          <path
+            key={p.key}
+            d={p.d}
+            className={`country country--${state}`}
+            onMouseEnter={() => handleEnter(p)}
+            onMouseLeave={handleLeave}
+            onClick={interactive ? () => onCountryClick?.({ cca3: p.cca3 }) : undefined}
+            style={{ cursor: interactive ? 'pointer' : 'grab' }}
+          />
+        );
+      }),
+    [paths, highlightCca3, revealCca3, wrongCca3, hoveredCca3, interactive, handleEnter, handleLeave, onCountryClick]
+  );
+
+  // City layer: constant-size markers positioned by the current transform, LOD
+  // by zoom, and culled to the viewport so it stays light at deep zoom.
+  const cityLayer = useMemo(() => {
+    if (t.k < 1.5) return null;
+    const pad = 44;
+    let dots = [];
+    for (const c of CITIES) {
+      if (t.k < c.dotMinK) continue;
+      const sx = c.x * t.k + t.x;
+      const sy = c.y * t.k + t.y;
+      if (sx < -pad || sx > W + pad || sy < -pad || sy > H + pad) continue;
+      dots.push({ ...c, sx, sy });
+    }
+    dots.sort((a, b) => b.cap - a.cap || a.rank - b.rank);
+    if (dots.length > 450) dots = dots.slice(0, 450);
+    let labelBudget = 60;
+    return dots.map((c, i) => {
+      const showLabel = t.k >= c.labelMinK && labelBudget > 0;
+      if (showLabel) labelBudget--;
+      return (
+        <g key={`${c.name}-${i}`} transform={`translate(${c.sx.toFixed(1)} ${c.sy.toFixed(1)})`}>
+          {c.cap ? (
+            <>
+              <circle className="city-cap-ring" r="3.2" />
+              <circle className="city-cap-dot" r="1.2" />
+            </>
+          ) : (
+            <circle className="city-dot" r="2" />
+          )}
+          {showLabel && (
+            <text className={`city-label${c.cap ? ' city-label--cap' : ''}`} x={c.cap ? 6 : 5} y="3.2">
+              {c.name}
+            </text>
+          )}
+        </g>
+      );
+    });
+  }, [t]);
+
   const showReadout = interactive || highlightCca3 || focusCca3;
 
   return (
@@ -141,28 +257,8 @@ export default function WorldMap({
         aria-label="World map"
         preserveAspectRatio="xMidYMid meet"
       >
-        <g ref={gRef}>
-          {paths.map((p) => {
-            const state = classify(p.cca3, {
-              highlightCca3,
-              revealCca3,
-              wrongCca3,
-              hoveredCca3,
-              interactive,
-            });
-            return (
-              <path
-                key={p.key}
-                d={p.d}
-                className={`country country--${state}`}
-                onMouseEnter={() => handleEnter(p)}
-                onMouseLeave={handleLeave}
-                onClick={interactive ? () => onCountryClick?.({ cca3: p.cca3 }) : undefined}
-                style={{ cursor: interactive ? 'pointer' : 'grab' }}
-              />
-            );
-          })}
-        </g>
+        <g transform={`translate(${t.x} ${t.y}) scale(${t.k})`}>{pathEls}</g>
+        <g className="city-layer">{cityLayer}</g>
       </svg>
 
       <div className="worldmap-zoom">
