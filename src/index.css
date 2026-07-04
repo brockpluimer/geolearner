@@ -34,10 +34,10 @@
 }
 
 html,
-body,
-#root {
+body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden; /* the app fits one screen — never scroll the page */
 }
 
 body {
@@ -47,15 +47,17 @@ body {
     linear-gradient(var(--wash) 1px, transparent 1px),
     linear-gradient(90deg, var(--wash) 1px, transparent 1px);
   background-size: 32px 32px;
-  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 #root {
+  height: 100dvh;
   display: flex;
   justify-content: center;
-  padding: clamp(0.75rem, 3vw, 2.5rem);
+  align-items: stretch;
+  padding: clamp(0.6rem, 2.2vw, 1.6rem);
+  overflow: hidden;
 }
 
 button {

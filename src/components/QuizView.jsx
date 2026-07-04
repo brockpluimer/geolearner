@@ -1,81 +1,94 @@
-// Renders a single question: a prompt (map / flag / text) and an answer area
-// (multiple choice / typed / click-the-map). Reports results up to App.
+// Renders a single question as three slots — stage (the prompt visual), answer
+// (choices / typed / map), and feedback — arranged to always fit one screen.
+// On wide viewports the answer sits in a side panel next to the stage.
 import { useEffect, useRef, useState } from 'react';
 import WorldMap from './WorldMap.jsx';
 import Flag from './Flag.jsx';
 import { checkTyped } from '../lib/quiz.js';
 
 export default function QuizView({ question, answered, result, onAnswer, onNext }) {
+  const p = question.prompt;
+  const mapAnswer = question.answer.kind === 'map';
+
+  // find-map: the map is the answer and fills the stage; the ask sits on top.
+  if (mapAnswer) {
+    return (
+      <div className="quiz quiz--mapfill">
+        <div className="quiz-ask quiz-ask--big">
+          <span className="quiz-ask-name">{p.text}</span>
+          <span className="quiz-ask-sub">{p.sub}</span>
+        </div>
+        <div className="quiz-stage">
+          <WorldMap
+            interactive={!answered}
+            focusCca3={answered ? question.target.cca3 : null}
+            revealCca3={answered ? question.target.cca3 : null}
+            wrongCca3={answered && !result?.correct ? result?.chosenCca3 : null}
+            onCountryClick={(country) =>
+              !answered &&
+              country &&
+              onAnswer({
+                correct: country.cca3 === question.target.cca3,
+                chosenCca3: country.cca3,
+              })
+            }
+          />
+        </div>
+        <div className="quiz-feedback">
+          <Feedback question={question} answered={answered} result={result} onNext={onNext} />
+        </div>
+      </div>
+    );
+  }
+
+  // Everything else: a visual stage + an answer panel (choices / typed).
+  const ask = p.kind === 'text' ? p.sub : p.text;
   return (
-    <div className="quiz">
-      <Prompt question={question} answered={answered} result={result} />
-      <AnswerArea question={question} answered={answered} result={result} onAnswer={onAnswer} />
-      <Feedback question={question} answered={answered} result={result} onNext={onNext} />
+    <div className="quiz quiz--split">
+      <div className="quiz-stage">
+        <Stage prompt={p} />
+      </div>
+      <div className="quiz-answer">
+        {ask && <p className="quiz-ask">{ask}</p>}
+        <AnswerArea question={question} answered={answered} result={result} onAnswer={onAnswer} />
+      </div>
+      <div className="quiz-feedback">
+        <Feedback question={question} answered={answered} result={result} onNext={onNext} />
+      </div>
     </div>
   );
 }
 
-function Prompt({ question, answered, result }) {
-  const { prompt } = question;
+function Stage({ prompt }) {
   if (prompt.kind === 'map') {
-    return (
-      <div className="prompt prompt--map">
-        <p className="prompt-question">{prompt.text}</p>
-        <WorldMap highlightCca3={prompt.highlightCca3} focusCca3={prompt.highlightCca3} />
-      </div>
-    );
+    return <WorldMap highlightCca3={prompt.highlightCca3} focusCca3={prompt.highlightCca3} />;
   }
   if (prompt.kind === 'flag') {
-    return (
-      <div className="prompt prompt--flag">
-        <p className="prompt-question">{prompt.text}</p>
-        <Flag code={prompt.cca2} size="w320" className="flag--hero" />
-      </div>
-    );
+    return <Flag code={prompt.cca2} size="w320" className="flag--hero" />;
   }
-  // text prompt (country→capital, capital→country, find-map)
   return (
-    <div className="prompt prompt--text">
+    <div className="prompt-textblock">
       <p className="prompt-big">{prompt.text}</p>
-      {prompt.sub && <p className="prompt-sub">{prompt.sub}</p>}
     </div>
   );
 }
 
 function AnswerArea({ question, answered, result, onAnswer }) {
-  if (question.answer.kind === 'mc') {
-    return (
-      <div className="choices">
-        {question.choices.map((c) => (
-          <button
-            key={c.id}
-            className={`choice${answered ? choiceState(c, result) : ''}`}
-            disabled={answered}
-            onClick={() => onAnswer({ correct: c.correct, chosenCca3: c.cca3 })}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
-    );
-  }
   if (question.answer.kind === 'typed') {
     return <TypedAnswer question={question} answered={answered} onAnswer={onAnswer} />;
   }
-  // map click (spatial)
   return (
-    <div className="answer-map">
-      <WorldMap
-        interactive={!answered}
-        focusCca3={answered ? question.target.cca3 : null}
-        revealCca3={answered ? question.target.cca3 : null}
-        wrongCca3={answered && !result?.correct ? result?.chosenCca3 : null}
-        onCountryClick={(country) =>
-          !answered &&
-          country &&
-          onAnswer({ correct: country.cca3 === question.target.cca3, chosenCca3: country.cca3 })
-        }
-      />
+    <div className="choices">
+      {question.choices.map((c) => (
+        <button
+          key={c.id}
+          className={`choice${answered ? choiceState(c, result) : ''}`}
+          disabled={answered}
+          onClick={() => onAnswer({ correct: c.correct, chosenCca3: c.cca3 })}
+        >
+          {c.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -111,7 +124,7 @@ function TypedAnswer({ question, answered, onAnswer }) {
         aria-label="Your answer"
       />
       <button className="btn btn--primary" type="submit" disabled={answered || !value.trim()}>
-        Submit
+        Go
       </button>
     </form>
   );
@@ -125,8 +138,7 @@ function Feedback({ question, answered, result, onNext }) {
   if (!answered) return <div className="feedback feedback--placeholder" />;
 
   const target = question.target;
-  const answerText =
-    question.answer.entity === 'capital' ? target.capital : target.name;
+  const answerText = question.answer.entity === 'capital' ? target.capital : target.name;
   return (
     <div className={`feedback ${result.correct ? 'feedback--right' : 'feedback--wrong'}`}>
       <div className="feedback-line">
@@ -134,7 +146,7 @@ function Feedback({ question, answered, result, onNext }) {
           <span className="feedback-badge">✓ Correct</span>
         ) : (
           <span className="feedback-badge">
-            ✗ It was <strong>{answerText}</strong>
+            ✕ It was <strong>{answerText}</strong>
           </span>
         )}
         <span className="feedback-detail">

@@ -38,8 +38,10 @@ await modeCards[0].click();
 await page.waitForSelector('.worldmap-svg', { timeout: 5000 });
 const paths = await page.$$eval('.worldmap-svg .country', (els) => els.length);
 assert(paths > 150, `world map rendered ${paths} country shapes`);
+// the target may only exist in the detailed set, which loads as the map auto-zooms
+await page.waitForSelector('.country--highlight', { timeout: 4000 });
 const highlighted = await page.$$('.country--highlight');
-assert(highlighted.length === 1, `exactly one country highlighted (got ${highlighted.length})`);
+assert(highlighted.length >= 1, `target country highlighted (got ${highlighted.length})`);
 const choices = await page.$$('.choice');
 assert(choices.length === 4, `4 multiple-choice options (got ${choices.length})`);
 await page.screenshot({ path: '/tmp/geo-quiz-map.png' });
@@ -53,7 +55,6 @@ const revealed = await page.$$eval('.choice--correct', (e) => e.length);
 assert(revealed === 1, `correct choice revealed after answer (got ${revealed})`);
 
 // --- Next question advances ---
-const q1 = await page.$eval('.prompt-question, .prompt-big', (el) => el.textContent);
 await page.click('.btn--next');
 await page.waitForSelector('.worldmap-svg', { timeout: 3000 });
 const progressed = await page.$eval('.quiz-progress', (el) => el.textContent);
@@ -74,11 +75,12 @@ await page.click('.link-btn');
 await page.waitForSelector('.mode-card');
 const cards3 = await page.$$('.mode-card');
 await cards3[4].click(); // Find on Map
-await page.waitForSelector('.answer-map .worldmap-svg', { timeout: 5000 });
-const interactivePaths = await page.$$eval('.answer-map .country', (e) => e.length);
+await page.waitForSelector('.quiz--mapfill .worldmap-svg', { timeout: 5000 });
+const interactivePaths = await page.$$eval('.quiz--mapfill .country', (e) => e.length);
 assert(interactivePaths > 150, `spatial mode shows interactive map (${interactivePaths} shapes)`);
-await page.$eval('.answer-map .country', (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+await page.$eval('.quiz--mapfill .country', (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 await page.waitForSelector('.feedback--right, .feedback--wrong', { timeout: 3000 });
+await page.waitForSelector('.country--correct', { timeout: 4000 }); // appears as map zooms to reveal
 const revealShape = await page.$$eval('.country--correct', (e) => e.length);
 assert(revealShape >= 1, `spatial answer reveals correct shape on map`);
 
