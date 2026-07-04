@@ -2,7 +2,8 @@
 // countries.json is keyed by ISO alpha-3 (cca3). Each record also carries the ISO
 // numeric `id` used to join against the world-atlas TopoJSON map shapes.
 import raw from '../data/countries.json';
-import topology from '../data/world-50m.json';
+import topo50 from '../data/world-50m.json';
+import topo110 from '../data/world-110m.json';
 import { feature } from 'topojson-client';
 
 /** @typedef {{cca3:string,cca2:string,id:string,name:string,official:string,
@@ -27,14 +28,21 @@ export const regions = [...new Set(countries.map((c) => c.region))].sort();
 
 // --- Map geometry -----------------------------------------------------------
 
-// Decode the TopoJSON once into GeoJSON features. Only keep features that join
-// to a country in our dataset so the map and quiz stay in sync.
-const allFeatures = feature(topology, topology.objects.countries).features;
+// Decode each TopoJSON resolution into GeoJSON features. Only keep features that
+// join to a country in our dataset so the map and quiz stay in sync.
+function buildFeatures(topology) {
+  return feature(topology, topology.objects.countries)
+    .features.map((f) => ({ ...f, country: byId[String(f.id)] || null }))
+    .filter((f) => f.country);
+}
 
-/** GeoJSON features that map to a known country, with `country` attached. */
-export const mapFeatures = allFeatures
-  .map((f) => ({ ...f, country: byId[String(f.id)] || null }))
-  .filter((f) => f.country);
+/** High-detail (1:50m) features — used when zoomed in. */
+export const mapFeatures50 = buildFeatures(topo50);
+/** Low-detail (1:110m) features — used for the zoomed-out overview. */
+export const mapFeatures110 = buildFeatures(topo110);
+
+/** Default feature set (high detail). */
+export const mapFeatures = mapFeatures50;
 
 /** Set of cca3 codes that have a renderable shape (for map/spatial modes). */
 export const mappableCca3 = new Set(mapFeatures.map((f) => f.country.cca3));

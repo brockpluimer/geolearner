@@ -13,18 +13,11 @@ export default function Scoreboard({ score, answered, streak, bestStreak }) {
 function Stat({ label, value, sub, highlight }) {
   return (
     <div className={`stat${highlight ? ' stat--hot' : ''}`}>
-      <div className="stat-value">
-        {value}
-        {highlight && streakFlame(value)}
-      </div>
+      <div className="stat-value">{value}</div>
       <div className="stat-label">
         {label}
         {sub != null && <span className="stat-sub"> {sub}</span>}
       </div>
     </div>
   );
-}
-
-function streakFlame(v) {
-  return v >= 3 ? <span className="flame" aria-hidden="true"> 🔥</span> : null;
 }

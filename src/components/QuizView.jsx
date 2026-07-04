@@ -21,7 +21,7 @@ function Prompt({ question, answered, result }) {
     return (
       <div className="prompt prompt--map">
         <p className="prompt-question">{prompt.text}</p>
-        <WorldMap highlightCca3={prompt.highlightCca3} dimUnhighlighted />
+        <WorldMap highlightCca3={prompt.highlightCca3} focusCca3={prompt.highlightCca3} />
       </div>
     );
   }
@@ -67,6 +67,7 @@ function AnswerArea({ question, answered, result, onAnswer }) {
     <div className="answer-map">
       <WorldMap
         interactive={!answered}
+        focusCca3={answered ? question.target.cca3 : null}
         revealCca3={answered ? question.target.cca3 : null}
         wrongCca3={answered && !result?.correct ? result?.chosenCca3 : null}
         onCountryClick={(country) =>

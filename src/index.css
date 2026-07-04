@@ -1,32 +1,32 @@
 :root {
-  color-scheme: dark;
-  --bg: #0b1020;
-  --bg-2: #0f1730;
-  --panel: rgba(255, 255, 255, 0.04);
-  --panel-2: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.18);
-  --text: #e8ecf6;
-  --muted: #9aa6c4;
-  --faint: #6b769a;
-  --accent: #ffcb2b; /* highlight amber */
-  --accent-2: #38bdf8; /* sky */
-  --brand: #7c8cff;
-  --good: #34d399;
-  --good-bg: rgba(52, 211, 153, 0.14);
-  --bad: #fb7185;
-  --bad-bg: rgba(251, 113, 133, 0.14);
-  --land: #33406b;
-  --land-hover: #4c5da0;
-  --ocean: #0a1226;
-  --radius: 16px;
-  --radius-sm: 11px;
-  --shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.7);
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color-scheme: light;
 
-  font-family: var(--font);
+  /* Monochrome, paper-and-ink palette. */
+  --paper: #fbfaf7;
+  --paper-2: #f3f1ea;
+  --ink: #16150f;
+  --ink-soft: #3d3b34;
+  --muted: #6f6d64;
+  --faint: #9a988e;
+  --line: rgba(22, 21, 15, 0.16);
+  --line-strong: rgba(22, 21, 15, 0.42);
+  --wash: rgba(22, 21, 15, 0.04);
+  --wash-2: rgba(22, 21, 15, 0.07);
+
+  /* Map inks */
+  --land: #e9e7de;
+  --land-hover: #d3d0c3;
+  --land-line: rgba(22, 21, 15, 0.5);
+
+  --radius: 10px;
+  --radius-sm: 7px;
+
+  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  font-family: var(--sans);
   line-height: 1.5;
-  color: var(--text);
+  color: var(--ink);
 }
 
 * {
@@ -41,25 +41,28 @@ body,
 }
 
 body {
-  background:
-    radial-gradient(1100px 700px at 15% -10%, rgba(124, 140, 255, 0.22), transparent 60%),
-    radial-gradient(900px 650px at 95% 0%, rgba(56, 189, 248, 0.16), transparent 55%),
-    linear-gradient(180deg, var(--bg-2), var(--bg));
-  background-attachment: fixed;
+  background-color: var(--paper);
+  /* barely-there engraved grid, like an old atlas sheet */
+  background-image:
+    linear-gradient(var(--wash) 1px, transparent 1px),
+    linear-gradient(90deg, var(--wash) 1px, transparent 1px);
+  background-size: 32px 32px;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
   display: flex;
   justify-content: center;
-  padding: clamp(0.75rem, 3vw, 2.25rem);
+  padding: clamp(0.75rem, 3vw, 2.5rem);
 }
 
 button {
   font-family: inherit;
 }
 
-a {
-  color: var(--accent-2);
+::selection {
+  background: var(--ink);
+  color: var(--paper);
 }

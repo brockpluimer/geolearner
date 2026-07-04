@@ -11,7 +11,7 @@ export default function ResultsScreen({ session, onPlayAgain, onMenu }) {
     <div className="results">
       <div className="results-card">
         <p className="results-eyebrow">{modeLabel} · session complete</p>
-        <div className={`results-grade grade--${grade.key}`}>{grade.emoji}</div>
+        <div className={`results-grade grade--${grade.key}`}>{grade.mark}</div>
         <h2 className="results-score">
           {correct}
           <span className="results-score-sep">/</span>
@@ -41,7 +41,7 @@ export default function ResultsScreen({ session, onPlayAgain, onMenu }) {
             </ul>
           </div>
         ) : (
-          answered > 0 && <p className="results-perfect">Flawless run — not a single miss! 🌟</p>
+          answered > 0 && <p className="results-perfect">A flawless run — not a single miss.</p>
         )}
 
         <div className="results-actions">
@@ -67,9 +67,9 @@ function Metric({ label, value }) {
 }
 
 function gradeFor(pct) {
-  if (pct >= 95) return { key: 'a', emoji: '🏆', label: 'Cartographer' };
-  if (pct >= 80) return { key: 'b', emoji: '🌍', label: 'Globetrotter' };
-  if (pct >= 60) return { key: 'c', emoji: '🧭', label: 'Explorer' };
-  if (pct >= 40) return { key: 'd', emoji: '📖', label: 'Student' };
-  return { key: 'e', emoji: '🌱', label: 'Rookie' };
+  if (pct >= 95) return { key: 'a', mark: 'A', label: 'Cartographer' };
+  if (pct >= 80) return { key: 'b', mark: 'B', label: 'Globetrotter' };
+  if (pct >= 60) return { key: 'c', mark: 'C', label: 'Explorer' };
+  if (pct >= 40) return { key: 'd', mark: 'D', label: 'Student' };
+  return { key: 'e', mark: 'E', label: 'Rookie' };
 }

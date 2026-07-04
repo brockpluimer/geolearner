@@ -29,7 +29,7 @@ export default function Menu({ region, setRegion, typed, setTyped, onStart }) {
             value={region}
             onChange={(e) => setRegion(e.target.value)}
           >
-            <option value="All">🌍 All regions</option>
+            <option value="All">All regions</option>
             {regions.map((r) => (
               <option key={r} value={r}>
                 {r}
@@ -51,7 +51,7 @@ export default function Menu({ region, setRegion, typed, setTyped, onStart }) {
               className={`toggle-btn${typed ? ' is-active' : ''}`}
               onClick={() => setTyped(true)}
             >
-              Type it ✍️
+              Type it
             </button>
           </div>
         </div>
@@ -106,9 +106,9 @@ export default function Menu({ region, setRegion, typed, setTyped, onStart }) {
 }
 
 const MODE_ICONS = {
-  'map-name': '🗺️',
-  'flag-name': '🚩',
-  'country-capital': '🏛️',
-  'capital-country': '📍',
-  'find-map': '🎯',
+  'map-name': 'I',
+  'flag-name': 'II',
+  'country-capital': 'III',
+  'capital-country': 'IV',
+  'find-map': 'V',
 };
