@@ -14,6 +14,7 @@ import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
 import 'd3-transition';
 import { mapFeatures50, mapFeatures110, byCca3 } from '../lib/countries.js';
 import cityData from '../data/cities.json';
+import waterData from '../data/water.json';
 
 const W = 900;
 const H = 470;
@@ -56,6 +57,18 @@ const CITIES = cityData
       dotMinK,
       labelMinK: c.cap ? dotMinK + 0.5 : dotMinK + 1.6,
     };
+  })
+  .filter(Boolean);
+
+// Pre-project water labels (oceans / seas / bays / gulfs / straits). Oceans show
+// at the world view; seas and smaller waters reveal as you zoom in.
+const WATER = waterData
+  .map((w) => {
+    const pt = projection([w.lng, w.lat]);
+    if (!pt) return null;
+    const tier = w.cla === 'ocean' ? 'ocean' : w.cla === 'sea' ? 'sea' : 'minor';
+    const minK = tier === 'ocean' ? 1 : tier === 'sea' ? 2.2 + w.rank * 0.12 : 3.5 + w.rank * 0.15;
+    return { name: w.name, x: pt[0], y: pt[1], tier, minK };
   })
   .filter(Boolean);
 
@@ -206,6 +219,31 @@ export default function WorldMap({
     [paths, highlightCca3, revealCca3, wrongCca3, hoveredCca3, interactive, handleEnter, handleLeave, onCountryClick]
   );
 
+  // Water labels: italic names positioned by the current transform, revealed by
+  // zoom (oceans always, then seas, then bays/gulfs/straits).
+  const waterLayer = useMemo(() => {
+    const pad = 70;
+    const out = [];
+    for (const w of WATER) {
+      if (t.k < w.minK) continue;
+      const sx = w.x * t.k + t.x;
+      const sy = w.y * t.k + t.y;
+      if (sx < -pad || sx > W + pad || sy < -pad || sy > H + pad) continue;
+      out.push({ ...w, sx, sy });
+      if (out.length >= 40) break;
+    }
+    return out.map((w, i) => (
+      <text
+        key={`${w.name}-${i}`}
+        className={`water-label water-label--${w.tier}`}
+        x={w.sx.toFixed(1)}
+        y={w.sy.toFixed(1)}
+      >
+        {w.name}
+      </text>
+    ));
+  }, [t]);
+
   // City layer: constant-size markers positioned by the current transform, LOD
   // by zoom, and culled to the viewport so it stays light at deep zoom.
   const cityLayer = useMemo(() => {
@@ -258,6 +296,7 @@ export default function WorldMap({
         preserveAspectRatio="xMidYMid meet"
       >
         <g transform={`translate(${t.x} ${t.y}) scale(${t.k})`}>{pathEls}</g>
+        <g className="water-layer">{waterLayer}</g>
         <g className="city-layer">{cityLayer}</g>
       </svg>
 

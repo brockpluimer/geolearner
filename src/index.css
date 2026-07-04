@@ -17,6 +17,9 @@
   --land: #e9e7de;
   --land-hover: #d3d0c3;
   --land-line: rgba(22, 21, 15, 0.5);
+  --ocean: #c3d7e6; /* soft atlas blue */
+  --water-ink: #46708f;
+  --water-ink-strong: #35597a;
 
   --radius: 10px;
   --radius-sm: 7px;

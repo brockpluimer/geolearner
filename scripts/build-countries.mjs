@@ -18,7 +18,11 @@ const raw = JSON.parse(
   readFileSync(resolve(root, 'node_modules/world-countries/countries.json'), 'utf8')
 );
 
-// Only quiz over independent, mappable countries with the fields we need.
+// Widely-quizzed states that world-countries marks non-independent but which
+// have their own ISO code, capital, and map shape.
+const INCLUDE_NON_INDEPENDENT = new Set(['PSE']); // Palestine
+
+// Only quiz over independent (or allow-listed), mappable countries.
 const countries = {};
 let skipped = 0;
 
@@ -34,7 +38,7 @@ for (const c of raw) {
     continue;
   }
   // Skip non-sovereign / uninhabited edge cases that pollute the quiz.
-  if (c.independent !== true) {
+  if (c.independent !== true && !INCLUDE_NON_INDEPENDENT.has(cca3)) {
     skipped++;
     continue;
   }

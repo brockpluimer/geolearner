@@ -576,7 +576,7 @@
 /* ---------- world map ---------- */
 .worldmap {
   position: relative;
-  background: var(--paper);
+  background: var(--ocean);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   padding: 0;
@@ -613,6 +613,36 @@
   stroke: var(--ink);
   stroke-width: 1.6;
   stroke-dasharray: 3 2;
+}
+
+/* water labels */
+.water-layer {
+  pointer-events: none;
+}
+.water-label {
+  font-family: var(--serif);
+  font-style: italic;
+  fill: var(--water-ink);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  paint-order: stroke;
+  stroke: var(--ocean);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+.water-label--ocean {
+  font-size: 15px;
+  font-style: normal;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  fill: var(--water-ink-strong);
+}
+.water-label--sea {
+  font-size: 12px;
+}
+.water-label--minor {
+  font-size: 10px;
+  opacity: 0.85;
 }
 
 /* city layer */
