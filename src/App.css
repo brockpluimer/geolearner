@@ -910,11 +910,48 @@
 
 /* ---------- mobile ---------- */
 @media (max-width: 560px) {
+  /* Slim everything so all five modes + the Heads Up card fit without clipping;
+     internal scroll is a safety net on very short screens. */
+  .menu {
+    gap: clamp(0.6rem, 1.8vh, 1rem);
+    overflow-y: auto;
+    justify-content: flex-start;
+    padding-top: 0.4rem;
+  }
+  .menu-controls {
+    gap: 0.8rem;
+  }
   .mode-grid {
     grid-template-columns: 1fr 1fr;
   }
+  .mode-card {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+  }
+  .mode-card-icon {
+    font-size: 1rem;
+  }
+  .mode-card-title {
+    font-size: 0.9rem;
+  }
+  .mode-card-blurb {
+    display: none;
+  }
   .mode-card:last-child {
     grid-column: 1 / -1;
+  }
+  .headsup-cta {
+    margin-top: 0.2rem;
+    padding: 0.7rem 0.9rem;
+    gap: 0.7rem;
+  }
+  .headsup-cta-icon {
+    font-size: 1.4rem;
+  }
+  .headsup-cta-blurb {
+    display: none;
   }
   .stat {
     padding: 0.5rem 0.4rem;
@@ -994,7 +1031,12 @@
 
 /* --- Shared shell --- */
 .headsup {
-  position: relative;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  width: 100vw;
+  height: 100dvh;
+  background: var(--paper);
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -1214,17 +1256,40 @@
   border: 1px solid var(--line-strong);
   box-shadow: 0 8px 24px rgba(22, 21, 15, 0.18);
 }
-.headsup-shape {
-  width: min(70vw, 380px);
+.headsup-locator {
+  width: min(90vw, 560px);
   height: auto;
 }
-.headsup-shape path {
-  fill: var(--ink);
-  stroke: none;
+.locator-land path {
+  fill: var(--land);
+  stroke: var(--land-line);
+  stroke-width: 0.4;
 }
-.headsup--flash-correct .headsup-shape path,
-.headsup--flash-pass .headsup-shape path {
+.locator-target path {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 0.6;
+}
+.locator-ring {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  opacity: 0.75;
+}
+/* On the color flash, keep the map legible against the tinted background. */
+.headsup--flash-correct .locator-land path,
+.headsup--flash-pass .locator-land path {
+  fill: rgba(251, 250, 247, 0.5);
+  stroke: rgba(251, 250, 247, 0.7);
+}
+.headsup--flash-correct .locator-target path,
+.headsup--flash-pass .locator-target path {
   fill: var(--paper);
+  stroke: var(--paper);
+}
+.headsup--flash-correct .locator-ring,
+.headsup--flash-pass .locator-ring {
+  stroke: var(--paper);
 }
 /* A compact banner near the top so it never covers the country on the card. */
 .headsup-flashword {

@@ -21,8 +21,8 @@ export const HEADSUP_DECKS = {
   },
   shapes: {
     id: 'shapes',
-    label: 'Map shapes',
-    blurb: 'Describe the silhouette on screen.',
+    label: 'Location',
+    blurb: 'Describe where it is on the map.',
     icon: '◈',
   },
   capitals: {

@@ -10,7 +10,7 @@
 // actions are driven by tap zones and the arrow/space keys.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Flag from './Flag.jsx';
-import CountryShape from './CountryShape.jsx';
+import LocatorMap from './LocatorMap.jsx';
 import { HEADSUP_DECKS, DECK_LIST, buildDeck } from '../lib/headsup.js';
 
 const ROUND_SECONDS = 60;
@@ -18,10 +18,11 @@ const FLASH_MS = 620; // how long the correct/pass color-flash holds a card
 // Tilt uses the screen-normal axis of the gravity vector (~9.8 at full tilt, ~0
 // when the phone is upright against the forehead). We low-pass filter it so the
 // jerk of the motion itself can't spike a false trigger or flip the direction.
-const TILT_ALPHA = 0.78; // smoothing: higher = steadier but slower to respond
-const TILT_TRIGGER = 6; // filtered magnitude that fires an action (~55° tilt)
+const TILT_ALPHA = 0.85; // smoothing: higher = steadier but slower to respond
+const TILT_TRIGGER = 7; // filtered magnitude that fires an action (~45° tilt)
 const TILT_NEUTRAL = 2.5; // must settle back within this before the next trigger
-const TILT_COOLDOWN = 500; // ms lockout after a trigger, belt-and-suspenders
+const TILT_HOLD_MS = 200; // tilt must be *held* this long — kills accidental flicks
+const TILT_COOLDOWN = 650; // ms lockout after a trigger, belt-and-suspenders
 
 /** Ask for motion access (iOS 13+). Returns true if tilt input is usable. */
 async function requestMotion() {
@@ -125,23 +126,31 @@ export default function HeadsUp({ region = 'All', onExit }) {
     let gz = null; // low-pass-filtered gravity on the screen-normal axis
     let armed = false; // require a settle-to-upright before the next trigger
     let lastFire = 0;
+    let pendingDir = 0; // direction currently past threshold (+1 down / -1 up)
+    let pendingSince = 0; // when it first crossed — must hold TILT_HOLD_MS to fire
     const onMotion = (e) => {
       const z = e.accelerationIncludingGravity?.z;
       if (z == null) return;
       gz = gz == null ? z : TILT_ALPHA * gz + (1 - TILT_ALPHA) * z;
+      const now = Date.now();
       if (!armed) {
         if (Math.abs(gz) < TILT_NEUTRAL) armed = true;
         return;
       }
-      if (Date.now() - lastFire < TILT_COOLDOWN) return;
-      if (gz < -TILT_TRIGGER) {
+      if (now - lastFire < TILT_COOLDOWN) return;
+      // Which way are we tilted past the trigger? 0 = still roughly upright.
+      const dir = gz < -TILT_TRIGGER ? 1 : gz > TILT_TRIGGER ? -1 : 0;
+      if (dir === 0 || dir !== pendingDir) {
+        pendingDir = dir;
+        pendingSince = now;
+        return;
+      }
+      // Same direction held long enough — commit it.
+      if (now - pendingSince >= TILT_HOLD_MS) {
         armed = false;
-        lastFire = Date.now();
-        advanceRef.current(true); // screen tipped toward the floor
-      } else if (gz > TILT_TRIGGER) {
-        armed = false;
-        lastFire = Date.now();
-        advanceRef.current(false); // screen tipped toward the ceiling
+        pendingDir = 0;
+        lastFire = now;
+        advanceRef.current(dir === 1); // down toward floor = got it
       }
     };
     window.addEventListener('devicemotion', onMotion);
@@ -312,12 +321,8 @@ function Card({ deckId, country }) {
     );
   }
   if (deckId === 'shapes') {
-    return (
-      <>
-        <CountryShape cca3={country.cca3} className="headsup-shape" />
-        <div className="headsup-name">{country.name}</div>
-      </>
-    );
+    // Location deck: show *where* it is, no name — the room clues the region.
+    return <LocatorMap cca3={country.cca3} className="headsup-locator" />;
   }
   if (deckId === 'capitals') {
     return (
