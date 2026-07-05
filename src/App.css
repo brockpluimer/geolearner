@@ -1269,12 +1269,14 @@
 .locator-land path {
   fill: var(--land);
   stroke: var(--land-line);
-  stroke-width: 0.5;
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
 }
 .locator-target path {
   fill: var(--ink);
   stroke: var(--ink);
-  stroke-width: 0.6;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
 }
 /* On the color flash, keep the map legible against the tinted background. */
 .headsup--flash-correct .locator-ocean,
