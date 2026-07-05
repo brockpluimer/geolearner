@@ -645,6 +645,25 @@
   opacity: 0.85;
 }
 
+/* country name labels (orientation for the guessed country's neighbours) */
+.country-label-layer {
+  pointer-events: none;
+}
+.country-label {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  fill: var(--ink-soft);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  opacity: 0.82;
+}
+
 /* city layer */
 .city-layer {
   pointer-events: none;

@@ -61,7 +61,13 @@ export default function QuizView({ question, answered, result, onAnswer, onNext 
 
 function Stage({ prompt }) {
   if (prompt.kind === 'map') {
-    return <WorldMap highlightCca3={prompt.highlightCca3} focusCca3={prompt.highlightCca3} />;
+    return (
+      <WorldMap
+        highlightCca3={prompt.highlightCca3}
+        focusCca3={prompt.highlightCca3}
+        showCountryLabels
+      />
+    );
   }
   if (prompt.kind === 'flag') {
     return <Flag code={prompt.cca2} size="w320" className="flag--hero" />;

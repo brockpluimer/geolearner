@@ -19,7 +19,8 @@ import waterData from '../data/water.json';
 const W = 900;
 const H = 470;
 const MIN_K = 1;
-const MAX_K = 16;
+const MAX_K = 96; // allow very deep manual zoom
+const FOCUS_MAX_K = 16; // cap for auto-framing so the "stock" view stays at ~60%
 const DETAIL_THRESHOLD = 2.4; // zoom scale at which we swap to 1:50m detail
 
 // One shared projection so both detail levels and the city layer line up.
@@ -106,8 +107,8 @@ function focusFor(feature) {
   const pxPerLat = Math.max(Math.abs(py[1] - cy) / 0.5, 0.01);
   const projW = dw * pxPerLon;
   const projH = dh * pxPerLat;
-  const k = Math.max(MIN_K, Math.min(MAX_K, 0.6 * Math.min(W / projW, H / projH)));
-  return { k, tx: W / 2 - k * cx, ty: H / 2 - k * cy, area: bestPts };
+  const k = Math.max(MIN_K, Math.min(FOCUS_MAX_K, 0.6 * Math.min(W / projW, H / projH)));
+  return { k, tx: W / 2 - k * cx, ty: H / 2 - k * cy, area: bestPts, cx, cy };
 }
 const FOCUS = {};
 const FOCUS_AREA = {};
@@ -120,12 +121,24 @@ for (const f of mapFeatures50) {
   }
 }
 
+// Country name labels, anchored at each country's main-landmass centroid. Placed
+// by the live transform (constant screen size) and culled to the viewport, so a
+// framed country's neighbours are named without cluttering the whole world.
+const COUNTRY_LABELS = Object.entries(FOCUS).map(([cca3, r]) => ({
+  cca3,
+  name: byCca3[cca3]?.name ?? cca3,
+  x: r.cx,
+  y: r.cy,
+  area: r.area,
+}));
+
 export default function WorldMap({
   highlightCca3 = null,
   revealCca3 = null,
   wrongCca3 = null,
   interactive = false,
   focusCca3 = null,
+  showCountryLabels = false,
   onCountryClick,
   onCountryHover,
 }) {
@@ -283,6 +296,33 @@ export default function WorldMap({
     });
   }, [t]);
 
+  // Country name labels for orientation. We skip the country being guessed
+  // (highlightCca3) so surroundings are named without giving the answer away.
+  const countryLabelLayer = useMemo(() => {
+    if (!showCountryLabels) return null;
+    const pad = 8;
+    let labels = [];
+    for (const l of COUNTRY_LABELS) {
+      if (l.cca3 === highlightCca3) continue;
+      const sx = l.x * t.k + t.x;
+      const sy = l.y * t.k + t.y;
+      if (sx < pad || sx > W - pad || sy < pad || sy > H - pad) continue;
+      labels.push({ ...l, sx, sy });
+    }
+    labels.sort((a, b) => b.area - a.area);
+    if (labels.length > 28) labels = labels.slice(0, 28);
+    return labels.map((l) => (
+      <text
+        key={l.cca3}
+        className="country-label"
+        x={l.sx.toFixed(1)}
+        y={l.sy.toFixed(1)}
+      >
+        {l.name}
+      </text>
+    ));
+  }, [t, showCountryLabels, highlightCca3]);
+
   const showReadout = interactive || highlightCca3 || focusCca3;
 
   return (
@@ -297,6 +337,7 @@ export default function WorldMap({
       >
         <g transform={`translate(${t.x} ${t.y}) scale(${t.k})`}>{pathEls}</g>
         <g className="water-layer">{waterLayer}</g>
+        <g className="country-label-layer">{countryLabelLayer}</g>
         <g className="city-layer">{cityLayer}</g>
       </svg>
 
