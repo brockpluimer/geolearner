@@ -1,0 +1,19 @@
+{
+  "name": "geolearner",
+  "short_name": "geolearner",
+  "description": "Learn the world — countries, capitals, flags, and a Heads Up party mode.",
+  "start_url": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#fbfaf7",
+  "theme_color": "#fbfaf7",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

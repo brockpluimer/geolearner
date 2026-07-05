@@ -1257,26 +1257,30 @@
   box-shadow: 0 8px 24px rgba(22, 21, 15, 0.18);
 }
 .headsup-locator {
-  width: min(90vw, 560px);
+  width: min(92vw, 620px);
   height: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.locator-ocean {
+  fill: var(--ocean);
 }
 .locator-land path {
   fill: var(--land);
   stroke: var(--land-line);
-  stroke-width: 0.4;
+  stroke-width: 0.5;
 }
 .locator-target path {
   fill: var(--ink);
   stroke: var(--ink);
   stroke-width: 0.6;
 }
-.locator-ring {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 2;
-  opacity: 0.75;
-}
 /* On the color flash, keep the map legible against the tinted background. */
+.headsup--flash-correct .locator-ocean,
+.headsup--flash-pass .locator-ocean {
+  fill: rgba(251, 250, 247, 0.14);
+}
 .headsup--flash-correct .locator-land path,
 .headsup--flash-pass .locator-land path {
   fill: rgba(251, 250, 247, 0.5);
@@ -1285,10 +1289,6 @@
 .headsup--flash-correct .locator-target path,
 .headsup--flash-pass .locator-target path {
   fill: var(--paper);
-  stroke: var(--paper);
-}
-.headsup--flash-correct .locator-ring,
-.headsup--flash-pass .locator-ring {
   stroke: var(--paper);
 }
 /* A compact banner near the top so it never covers the country on the card. */

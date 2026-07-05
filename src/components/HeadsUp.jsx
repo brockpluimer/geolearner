@@ -24,6 +24,20 @@ const TILT_NEUTRAL = 2.5; // must settle back within this before the next trigge
 const TILT_HOLD_MS = 200; // tilt must be *held* this long — kills accidental flicks
 const TILT_COOLDOWN = 650; // ms lockout after a trigger, belt-and-suspenders
 
+/** Go fullscreen (hides the browser chrome). No-op where unsupported (iPhone
+ *  Safari — there, "Add to Home Screen" gives the chromeless experience). */
+function enterFullscreen() {
+  const el = document.documentElement;
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (fn) Promise.resolve(fn.call(el)).catch(() => {});
+}
+function exitFullscreen() {
+  const fn = document.exitFullscreen || document.webkitExitFullscreen;
+  if (fn && (document.fullscreenElement || document.webkitFullscreenElement)) {
+    Promise.resolve(fn.call(document)).catch(() => {});
+  }
+}
+
 /** Ask for motion access (iOS 13+). Returns true if tilt input is usable. */
 async function requestMotion() {
   const D = typeof window !== 'undefined' ? window.DeviceMotionEvent : undefined;
@@ -59,6 +73,13 @@ export default function HeadsUp({ region = 'All', onExit }) {
 
   const deck = HEADSUP_DECKS[deckId];
 
+  // Leaving the mode drops fullscreen; also clean up if unmounted mid-round.
+  const leave = useCallback(() => {
+    exitFullscreen();
+    onExit?.();
+  }, [onExit]);
+  useEffect(() => exitFullscreen, []);
+
   // --- Advancing -------------------------------------------------------------
   const advance = useCallback((hit) => {
     if (lockRef.current) return;
@@ -84,6 +105,7 @@ export default function HeadsUp({ region = 'All', onExit }) {
 
   // --- Start / countdown -----------------------------------------------------
   const start = useCallback(async () => {
+    enterFullscreen();
     const ok = await requestMotion();
     setTiltOn(ok);
     setQueue(buildDeck({ deck: deckId, region }));
@@ -181,7 +203,7 @@ export default function HeadsUp({ region = 'All', onExit }) {
   if (phase === 'setup') {
     return (
       <div className="headsup headsup--setup">
-        <button className="link-btn headsup-back" onClick={onExit}>
+        <button className="link-btn headsup-back" onClick={leave}>
           ← Menu
         </button>
         <div className="headsup-setup-inner">
@@ -264,7 +286,7 @@ export default function HeadsUp({ region = 'All', onExit }) {
             <button className="btn btn--ghost" onClick={() => setPhase('setup')}>
               Change deck
             </button>
-            <button className="link-btn" onClick={onExit}>
+            <button className="link-btn" onClick={leave}>
               Menu
             </button>
           </div>
