@@ -46,7 +46,7 @@ export default function QuizView({ question, answered, result, onAnswer, onNext 
   return (
     <div className="quiz quiz--split">
       <div className="quiz-stage">
-        <Stage prompt={p} />
+        <Stage prompt={p} hard={question.answer.kind === 'typed'} answered={answered} />
       </div>
       <div className="quiz-answer">
         {ask && <p className="quiz-ask">{ask}</p>}
@@ -59,13 +59,15 @@ export default function QuizView({ question, answered, result, onAnswer, onNext 
   );
 }
 
-function Stage({ prompt }) {
+function Stage({ prompt, hard = false, answered = false }) {
   if (prompt.kind === 'map') {
+    // In hard mode we withhold the neighbouring-country labels (an orientation
+    // aid) until the guess is in, so they can't be used to triangulate.
     return (
       <WorldMap
         highlightCca3={prompt.highlightCca3}
         focusCca3={prompt.highlightCca3}
-        showCountryLabels
+        showCountryLabels={!hard || answered}
       />
     );
   }

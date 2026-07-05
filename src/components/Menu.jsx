@@ -3,7 +3,7 @@ import { MODE_LIST } from '../lib/quiz.js';
 import { regions } from '../lib/countries.js';
 import { getStats, resetStats } from '../lib/storage.js';
 
-export default function Menu({ region, setRegion, typed, setTyped, onStart }) {
+export default function Menu({ region, setRegion, typed, setTyped, onStart, onHeadsUp }) {
   const stats = getStats();
   const missed = Object.entries(stats.countries)
     .filter(([, s]) => s.missed > 0)
@@ -69,6 +69,22 @@ export default function Menu({ region, setRegion, typed, setTyped, onStart }) {
           </button>
         ))}
       </section>
+
+      <button className="headsup-cta" onClick={onHeadsUp}>
+        <span className="headsup-cta-icon" aria-hidden="true">
+          🙈
+        </span>
+        <span className="headsup-cta-text">
+          <span className="headsup-cta-title">Heads Up · party mode</span>
+          <span className="headsup-cta-blurb">
+            Phone to your forehead, 60 seconds, tilt to score. Flags, countries, shapes &
+            capitals.
+          </span>
+        </span>
+        <span className="headsup-cta-go" aria-hidden="true">
+          →
+        </span>
+      </button>
 
       {stats.totalAnswered > 0 && (
         <section className="menu-stats">

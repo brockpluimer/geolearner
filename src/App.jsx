@@ -4,6 +4,7 @@ import Menu from './components/Menu.jsx';
 import QuizView from './components/QuizView.jsx';
 import Scoreboard from './components/Scoreboard.jsx';
 import ResultsScreen from './components/ResultsScreen.jsx';
+import HeadsUp from './components/HeadsUp.jsx';
 import { MODES, generateQuestion } from './lib/quiz.js';
 import { getStats, recordResult, recordStreak } from './lib/storage.js';
 import './App.css';
@@ -125,7 +126,12 @@ export default function App() {
           typed={typed}
           setTyped={setTyped}
           onStart={startQuiz}
+          onHeadsUp={() => setScreen('headsup')}
         />
+      )}
+
+      {screen === 'headsup' && (
+        <HeadsUp region={region} onExit={() => setScreen('menu')} />
       )}
 
       {screen === 'quiz' && question && (

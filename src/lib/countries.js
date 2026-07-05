@@ -50,6 +50,11 @@ export const mappableCca3 = new Set(mapFeatures.map((f) => f.country.cca3));
 /** Countries that have a shape on the map. */
 export const mappableCountries = countries.filter((c) => mappableCca3.has(c.cca3));
 
+/** Lookup: cca3 -> its GeoJSON feature (main high-detail geometry). */
+export const featureByCca3 = Object.fromEntries(
+  mapFeatures50.map((f) => [f.country.cca3, f])
+);
+
 // --- Selection helpers ------------------------------------------------------
 
 export function sample(arr) {
