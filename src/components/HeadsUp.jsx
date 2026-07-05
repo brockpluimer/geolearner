@@ -343,8 +343,14 @@ function Card({ deckId, country }) {
     );
   }
   if (deckId === 'shapes') {
-    // Location deck: show *where* it is, no name — the room clues the region.
-    return <LocatorMap cca3={country.cca3} className="headsup-locator" />;
+    // Location deck: the map shows *where* it is; the name lets the room confirm
+    // the guess (the holder can't see it).
+    return (
+      <>
+        <LocatorMap cca3={country.cca3} className="headsup-locator" />
+        <div className="headsup-name">{country.name}</div>
+      </>
+    );
   }
   if (deckId === 'capitals') {
     return (

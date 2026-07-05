@@ -1278,6 +1278,43 @@
   stroke-width: 0.8;
   vector-effect: non-scaling-stroke;
 }
+.locator-labels {
+  pointer-events: none;
+}
+.locator-clabel {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  fill: var(--ink-soft);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 2.6px;
+  stroke-linejoin: round;
+}
+.locator-wlabel {
+  font-family: var(--sans);
+  font-style: italic;
+  font-size: 9.5px;
+  font-weight: 500;
+  fill: var(--water-ink-strong);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  paint-order: stroke;
+  stroke: var(--ocean);
+  stroke-width: 2.6px;
+  stroke-linejoin: round;
+}
+/* Keep labels readable over the correct/pass color flash. */
+.headsup--flash-correct .locator-clabel,
+.headsup--flash-pass .locator-clabel,
+.headsup--flash-correct .locator-wlabel,
+.headsup--flash-pass .locator-wlabel {
+  fill: var(--paper);
+  stroke: rgba(22, 21, 15, 0.35);
+}
 /* On the color flash, keep the map legible against the tinted background. */
 .headsup--flash-correct .locator-ocean,
 .headsup--flash-pass .locator-ocean {

@@ -8,12 +8,15 @@
 import { useMemo } from 'react';
 import { geoNaturalEarth1, geoPath, geoBounds, geoCentroid } from 'd3-geo';
 import { mapFeatures110, featureByCca3 } from '../lib/countries.js';
+import waterData from '../data/water.json';
 
 const W = 440;
 const H = 280;
 const FILL = 0.4; // target country ≈ this fraction of the frame
 const MIN_K = 1.1;
 const MAX_K = 42;
+const MAX_COUNTRY_LABELS = 7;
+const MAX_WATER_LABELS = 3;
 
 const base = geoNaturalEarth1().fitExtent(
   [
@@ -25,6 +28,22 @@ const base = geoNaturalEarth1().fitExtent(
 const basePath = geoPath(base);
 const WORLD = mapFeatures110.map((f, i) => ({ key: `${f.country.cca3}__${i}`, d: basePath(f) }));
 const feature110 = Object.fromEntries(mapFeatures110.map((f) => [f.country.cca3, f]));
+
+// Pre-projected label anchors (in base coords). Per card we just push these
+// through the framing transform and cull to what's on screen.
+const COUNTRY_ANCHORS = mapFeatures110
+  .map((f) => {
+    const [bx, by] = base(geoCentroid(f));
+    const [dw, dh] = angularSize(f);
+    return { cca3: f.country.cca3, name: f.country.name, bx, by, area: dw * dh };
+  })
+  .filter((a) => Number.isFinite(a.bx) && Number.isFinite(a.by));
+const WATER_ANCHORS = waterData
+  .map((w) => {
+    const p = base([w.lng, w.lat]);
+    return p ? { name: w.name, bx: p[0], by: p[1], rank: w.rank } : null;
+  })
+  .filter(Boolean);
 
 // The country's largest polygon — robust to far-flung territories (US→lower 48)
 // and antimeridian wraps that would inflate a bounding box.
@@ -49,9 +68,9 @@ function angularSize(feature) {
 }
 
 export default function LocatorMap({ cca3, className = '' }) {
-  const { transform, targetD } = useMemo(() => {
+  const { transform, targetD, countryLabels, waterLabels } = useMemo(() => {
     const feat = feature110[cca3] || featureByCca3[cca3];
-    if (!feat) return { transform: '', targetD: null };
+    if (!feat) return { transform: '', targetD: null, countryLabels: [], waterLabels: [] };
     const land = mainland(feat);
     const [dw, dh] = angularSize(land);
     const c = geoCentroid(land);
@@ -66,7 +85,30 @@ export default function LocatorMap({ cca3, className = '' }) {
     const k = Math.max(MIN_K, Math.min(MAX_K, FILL * Math.min(W / projW, H / projH)));
     const tx = W / 2 - k * cx;
     const ty = H / 2 - k * cy;
-    return { transform: `translate(${tx.toFixed(2)} ${ty.toFixed(2)}) scale(${k.toFixed(3)})`, targetD: basePath(feat) };
+
+    // Project each anchor into screen space and keep the ones on-frame.
+    const pad = 6;
+    const onFrame = (a) => {
+      const sx = k * a.bx + tx;
+      const sy = k * a.by + ty;
+      return sx > pad && sx < W - pad && sy > pad && sy < H - pad ? { ...a, sx, sy } : null;
+    };
+    const countries = COUNTRY_ANCHORS.filter((a) => a.cca3 !== cca3)
+      .map(onFrame)
+      .filter(Boolean)
+      .sort((a, b) => b.area - a.area) // biggest neighbours first
+      .slice(0, MAX_COUNTRY_LABELS);
+    const waters = WATER_ANCHORS.map(onFrame)
+      .filter(Boolean)
+      .sort((a, b) => a.rank - b.rank) // most significant bodies first
+      .slice(0, MAX_WATER_LABELS);
+
+    return {
+      transform: `translate(${tx.toFixed(2)} ${ty.toFixed(2)}) scale(${k.toFixed(3)})`,
+      targetD: basePath(feat),
+      countryLabels: countries,
+      waterLabels: waters,
+    };
   }, [cca3]);
 
   return (
@@ -83,6 +125,19 @@ export default function LocatorMap({ cca3, className = '' }) {
             <path d={targetD} />
           </g>
         )}
+      </g>
+      {/* Labels sit outside the scaled group so they stay a constant size. */}
+      <g className="locator-labels">
+        {waterLabels.map((l, i) => (
+          <text key={`w${i}`} className="locator-wlabel" x={l.sx.toFixed(1)} y={l.sy.toFixed(1)}>
+            {l.name}
+          </text>
+        ))}
+        {countryLabels.map((l) => (
+          <text key={l.cca3} className="locator-clabel" x={l.sx.toFixed(1)} y={l.sy.toFixed(1)}>
+            {l.name}
+          </text>
+        ))}
       </g>
     </svg>
   );
