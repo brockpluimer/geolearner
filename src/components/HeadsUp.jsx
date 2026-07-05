@@ -15,10 +15,13 @@ import { HEADSUP_DECKS, DECK_LIST, buildDeck } from '../lib/headsup.js';
 
 const ROUND_SECONDS = 60;
 const FLASH_MS = 620; // how long the correct/pass color-flash holds a card
-// Gravity-vector (m/s^2) thresholds on the screen-normal axis. Near 0 the phone
-// is upright (held to the forehead); a strong tilt past these fires an action.
-const TRIGGER = 6.2;
-const NEUTRAL = 3.2;
+// Tilt uses the screen-normal axis of the gravity vector (~9.8 at full tilt, ~0
+// when the phone is upright against the forehead). We low-pass filter it so the
+// jerk of the motion itself can't spike a false trigger or flip the direction.
+const TILT_ALPHA = 0.78; // smoothing: higher = steadier but slower to respond
+const TILT_TRIGGER = 6; // filtered magnitude that fires an action (~55° tilt)
+const TILT_NEUTRAL = 2.5; // must settle back within this before the next trigger
+const TILT_COOLDOWN = 500; // ms lockout after a trigger, belt-and-suspenders
 
 /** Ask for motion access (iOS 13+). Returns true if tilt input is usable. */
 async function requestMotion() {
@@ -119,19 +122,25 @@ export default function HeadsUp({ region = 'All', onExit }) {
   // --- Tilt input ------------------------------------------------------------
   useEffect(() => {
     if (phase !== 'play' || !tiltOn) return;
-    let armed = false; // require a return to upright before the next trigger
+    let gz = null; // low-pass-filtered gravity on the screen-normal axis
+    let armed = false; // require a settle-to-upright before the next trigger
+    let lastFire = 0;
     const onMotion = (e) => {
       const z = e.accelerationIncludingGravity?.z;
       if (z == null) return;
+      gz = gz == null ? z : TILT_ALPHA * gz + (1 - TILT_ALPHA) * z;
       if (!armed) {
-        if (Math.abs(z) < NEUTRAL) armed = true;
+        if (Math.abs(gz) < TILT_NEUTRAL) armed = true;
         return;
       }
-      if (z < -TRIGGER) {
+      if (Date.now() - lastFire < TILT_COOLDOWN) return;
+      if (gz < -TILT_TRIGGER) {
         armed = false;
+        lastFire = Date.now();
         advanceRef.current(true); // screen tipped toward the floor
-      } else if (z > TRIGGER) {
+      } else if (gz > TILT_TRIGGER) {
         armed = false;
+        lastFire = Date.now();
         advanceRef.current(false); // screen tipped toward the ceiling
       }
     };

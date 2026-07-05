@@ -1226,29 +1226,30 @@
 .headsup--flash-pass .headsup-shape path {
   fill: var(--paper);
 }
+/* A compact banner near the top so it never covers the country on the card. */
 .headsup-flashword {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--serif);
-  font-size: clamp(3rem, 16vw, 7rem);
-  font-weight: 600;
+  top: 3.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.3rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(251, 250, 247, 0.16);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   z-index: 4;
   pointer-events: none;
-  animation: hu-flashword 0.62s ease;
+  animation: hu-flashword 0.3s ease;
 }
 @keyframes hu-flashword {
   0% {
-    transform: scale(0.7);
+    transform: translateX(-50%) translateY(-6px);
     opacity: 0;
   }
-  25% {
-    transform: scale(1);
-    opacity: 1;
-  }
   100% {
+    transform: translateX(-50%) translateY(0);
     opacity: 1;
   }
 }
