@@ -5,11 +5,12 @@
 //     choices:[{id,label,correct,cca3}] }
 //
 // The MC engine draws 3 distractors from the target's region (see pickDistractors),
-// shuffles, and marks the correct choice. A global "typed" toggle upgrades the
-// country-answer MC modes into hard typed mode.
+// shuffles, and marks the correct choice. A global difficulty setting picks the
+// input kind for non-spatial modes: easy = multiple choice, medium = recall then
+// reveal (self-graded), hard = typed with exact spelling.
 import { countries, mappableCountries, pickDistractors, shuffle, sample } from './countries.js';
 import { weightedPick } from './storage.js';
-import { matchesCountry, normalize } from './fuzzy.js';
+import { matchesCountryExact, normalize } from './fuzzy.js';
 
 /** Available quiz modes. `entity` is what the player must produce. */
 export const MODES = {
@@ -83,10 +84,10 @@ let seq = 0;
  * @param {object} opts
  * @param {string} opts.modeId
  * @param {string} [opts.region]  region filter ('All' by default)
- * @param {boolean} [opts.typed]  hard mode: typed answers where the mode allows
+ * @param {'easy'|'medium'|'hard'} [opts.difficulty]  easy=MC, medium=reveal, hard=typed
  * @param {string} [opts.avoidCca3] don't repeat this target back-to-back
  */
-export function generateQuestion({ modeId, region = 'All', typed = false, avoidCca3 } = {}) {
+export function generateQuestion({ modeId, region = 'All', difficulty = 'easy', avoidCca3 } = {}) {
   const mode = MODES[modeId];
   let pool = buildPool({ modeId, region });
   if (pool.length < 2) pool = mode.needsShape ? mappableCountries : countries;
@@ -96,8 +97,15 @@ export function generateQuestion({ modeId, region = 'All', typed = false, avoidC
   if (candidates.length === 0) candidates = pool;
   const target = weightedPick(candidates);
 
-  const useTyped = typed && mode.canType;
-  const answerKind = mode.spatial ? 'map' : useTyped ? 'typed' : 'mc';
+  // Spatial modes are always answered by clicking. Otherwise difficulty picks
+  // the input: easy = multiple choice, medium = recall-then-reveal, hard = type.
+  const answerKind = mode.spatial
+    ? 'map'
+    : difficulty === 'hard'
+      ? 'typed'
+      : difficulty === 'medium'
+        ? 'reveal'
+        : 'mc';
 
   const prompt = buildPrompt(mode, target);
   const q = {
@@ -161,7 +169,7 @@ export function checkTyped(question, text) {
     const t = normalize(target.capital);
     return !!g && (g === t || g === t.replace(/^the /, ''));
   }
-  return matchesCountry(text, target);
+  return matchesCountryExact(text, target);
 }
 
 /** Sample a random mode id (used for a "surprise me" flow if desired). */

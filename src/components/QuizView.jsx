@@ -85,6 +85,9 @@ function AnswerArea({ question, answered, result, onAnswer }) {
   if (question.answer.kind === 'typed') {
     return <TypedAnswer question={question} answered={answered} onAnswer={onAnswer} />;
   }
+  if (question.answer.kind === 'reveal') {
+    return <RevealAnswer question={question} answered={answered} onAnswer={onAnswer} />;
+  }
   return (
     <div className="choices">
       {question.choices.map((c) => (
@@ -135,6 +138,47 @@ function TypedAnswer({ question, answered, onAnswer }) {
         Go
       </button>
     </form>
+  );
+}
+
+// Medium difficulty: recall the answer yourself, reveal it, then self-grade.
+function RevealAnswer({ question, answered, onAnswer }) {
+  const [revealed, setRevealed] = useState(false);
+  const target = question.target;
+  const answerText = question.answer.entity === 'capital' ? target.capital : target.name;
+
+  if (!revealed && !answered) {
+    return (
+      <div className="reveal">
+        <button className="btn btn--primary reveal-btn" onClick={() => setRevealed(true)}>
+          Reveal answer
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="reveal reveal--open">
+      <p className="reveal-answer">{answerText}</p>
+      {!answered && (
+        <div className="reveal-grade">
+          <p className="reveal-ask">Did you get it?</p>
+          <div className="reveal-buttons">
+            <button
+              className="btn reveal-yes"
+              onClick={() => onAnswer({ correct: true, chosenCca3: target.cca3 })}
+            >
+              ✓ Got it
+            </button>
+            <button
+              className="btn reveal-no"
+              onClick={() => onAnswer({ correct: false, chosenCca3: target.cca3 })}
+            >
+              ✕ Missed
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

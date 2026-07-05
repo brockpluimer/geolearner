@@ -117,6 +117,24 @@ export function matchesCountry(guess, country) {
   return false;
 }
 
+/**
+ * Strict variant for hard mode: requires the *exact* spelling (case-, accent-,
+ * and punctuation-insensitive), plus known aliases and a droppable leading
+ * article — but no typo/edit-distance tolerance.
+ * @param {string} guess
+ * @param {{cca3:string, name:string, official?:string}} country
+ */
+export function matchesCountryExact(guess, country) {
+  const g = normalize(guess);
+  if (!g) return false;
+  if (NORM_ALIASES[g] === country.cca3) return true;
+  const targets = [country.name, country.official].filter(Boolean).map(normalize);
+  for (const t of targets) {
+    if (g === t || g === t.replace(/^the /, '')) return true;
+  }
+  return false;
+}
+
 /** Resolve free text to a cca3 via alias table (used for hints/debug). */
 export function aliasToCca3(text) {
   return NORM_ALIASES[normalize(text)] || null;

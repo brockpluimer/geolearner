@@ -9,7 +9,9 @@ import { MODES, generateQuestion } from './lib/quiz.js';
 import { getStats, recordResult, recordStreak } from './lib/storage.js';
 import './App.css';
 
-const ROUND_LENGTH = 10;
+const ROUND_LENGTH = 20;
+
+const DIFFICULTY_LABELS = { easy: 'easy', medium: 'medium', hard: 'hard' };
 
 const emptySession = () => ({
   answered: 0,
@@ -23,7 +25,7 @@ export default function App() {
   const [screen, setScreen] = useState('menu');
   const [modeId, setModeId] = useState('map-name');
   const [region, setRegion] = useState('All');
-  const [typed, setTyped] = useState(false);
+  const [difficulty, setDifficulty] = useState('easy');
 
   const [question, setQuestion] = useState(null);
   const [answered, setAnswered] = useState(false);
@@ -34,23 +36,23 @@ export default function App() {
 
   const nextQuestion = useCallback(
     (avoidCca3) => {
-      setQuestion(generateQuestion({ modeId, region, typed, avoidCca3 }));
+      setQuestion(generateQuestion({ modeId, region, difficulty, avoidCca3 }));
       setAnswered(false);
       setResult(null);
     },
-    [modeId, region, typed]
+    [modeId, region, difficulty]
   );
 
   const startQuiz = useCallback(
     (id) => {
       setModeId(id);
       setSession(emptySession());
-      setQuestion(generateQuestion({ modeId: id, region, typed }));
+      setQuestion(generateQuestion({ modeId: id, region, difficulty }));
       setAnswered(false);
       setResult(null);
       setScreen('quiz');
     },
-    [region, typed]
+    [region, difficulty]
   );
 
   const handleAnswer = useCallback(
@@ -123,8 +125,8 @@ export default function App() {
         <Menu
           region={region}
           setRegion={setRegion}
-          typed={typed}
-          setTyped={setTyped}
+          difficulty={difficulty}
+          setDifficulty={setDifficulty}
           onStart={startQuiz}
           onHeadsUp={() => setScreen('headsup')}
         />
@@ -143,7 +145,9 @@ export default function App() {
             <div className="quiz-mode">
               <span className="quiz-mode-label">{mode.label}</span>
               {region !== 'All' && <span className="chip chip--sm">{region}</span>}
-              {typed && mode.canType && <span className="chip chip--sm">typed</span>}
+              {difficulty !== 'easy' && !mode.spatial && (
+                <span className="chip chip--sm">{DIFFICULTY_LABELS[difficulty]}</span>
+              )}
             </div>
             <div className="quiz-progress">
               {Math.min(session.answered + (answered ? 0 : 1), ROUND_LENGTH)}/{ROUND_LENGTH}

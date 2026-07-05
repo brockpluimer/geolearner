@@ -3,7 +3,14 @@ import { MODE_LIST } from '../lib/quiz.js';
 import { regions } from '../lib/countries.js';
 import { getStats, resetStats } from '../lib/storage.js';
 
-export default function Menu({ region, setRegion, typed, setTyped, onStart, onHeadsUp }) {
+const DIFFICULTIES = [
+  { id: 'easy', label: 'Easy', hint: 'Multiple choice' },
+  { id: 'medium', label: 'Medium', hint: 'Recall, then reveal' },
+  { id: 'hard', label: 'Hard', hint: 'Type it — exact spelling' },
+];
+
+export default function Menu({ region, setRegion, difficulty, setDifficulty, onStart, onHeadsUp }) {
+  const activeDiff = DIFFICULTIES.find((d) => d.id === difficulty) ?? DIFFICULTIES[0];
   const stats = getStats();
   const missed = Object.entries(stats.countries)
     .filter(([, s]) => s.missed > 0)
@@ -41,19 +48,18 @@ export default function Menu({ region, setRegion, typed, setTyped, onStart, onHe
         <div className="field">
           <span className="field-label">Difficulty</span>
           <div className="toggle" role="group" aria-label="Answer difficulty">
-            <button
-              className={`toggle-btn${!typed ? ' is-active' : ''}`}
-              onClick={() => setTyped(false)}
-            >
-              Multiple choice
-            </button>
-            <button
-              className={`toggle-btn${typed ? ' is-active' : ''}`}
-              onClick={() => setTyped(true)}
-            >
-              Type it
-            </button>
+            {DIFFICULTIES.map((d) => (
+              <button
+                key={d.id}
+                className={`toggle-btn${difficulty === d.id ? ' is-active' : ''}`}
+                onClick={() => setDifficulty(d.id)}
+                title={d.hint}
+              >
+                {d.label}
+              </button>
+            ))}
           </div>
+          <span className="toggle-hint">{activeDiff.hint}</span>
         </div>
       </section>
 
@@ -65,7 +71,9 @@ export default function Menu({ region, setRegion, typed, setTyped, onStart, onHe
             </span>
             <span className="mode-card-title">{m.label}</span>
             <span className="mode-card-blurb">{m.blurb}</span>
-            {typed && !m.canType && <span className="mode-card-note">MC only</span>}
+            {difficulty !== 'easy' && m.spatial && (
+              <span className="mode-card-note">click mode</span>
+            )}
           </button>
         ))}
       </section>
