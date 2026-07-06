@@ -831,18 +831,17 @@
   color: var(--faint);
   margin: 0;
 }
-.results-grade {
+.results-rank {
   font-family: var(--serif);
-  font-size: 3.5rem;
+  font-size: 1.15rem;
   font-weight: 600;
-  line-height: 1;
-  width: 96px;
-  height: 96px;
-  margin: 1.25rem auto;
-  display: grid;
-  place-items: center;
+  letter-spacing: 0.04em;
+  align-self: center;
+  margin: 0 auto 1.5rem;
+  padding: 0.45rem 1.4rem;
   border: 1px solid var(--ink);
-  border-radius: 50%;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 .results-score {
   font-family: var(--serif);

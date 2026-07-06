@@ -5,13 +5,12 @@ export default function ResultsScreen({ session, onPlayAgain, onMenu }) {
   const { answered, correct, bestRunStreak, history, modeLabel } = session;
   const pct = answered ? Math.round((correct / answered) * 100) : 0;
   const missed = history.filter((h) => !h.correct);
-  const grade = gradeFor(pct);
+  const rank = rankFor(pct);
 
   return (
     <div className="results">
       <div className="results-card">
         <p className="results-eyebrow">{modeLabel} · session complete</p>
-        <div className={`results-grade grade--${grade.key}`}>{grade.mark}</div>
         <h2 className="results-score">
           {correct}
           <span className="results-score-sep">/</span>
@@ -19,10 +18,11 @@ export default function ResultsScreen({ session, onPlayAgain, onMenu }) {
         </h2>
         <p className="results-pct">{pct}% correct</p>
 
+        {answered > 0 && <div className={`results-rank rank--${rank.key}`}>{rank.label}</div>}
+
         <div className="results-metrics">
           <Metric label="Best streak" value={bestRunStreak} />
           <Metric label="Missed" value={missed.length} />
-          <Metric label="Grade" value={grade.label} />
         </div>
 
         {missed.length > 0 ? (
@@ -66,10 +66,10 @@ function Metric({ label, value }) {
   );
 }
 
-function gradeFor(pct) {
-  if (pct >= 95) return { key: 'a', mark: 'A', label: 'Cartographer' };
-  if (pct >= 80) return { key: 'b', mark: 'B', label: 'Globetrotter' };
-  if (pct >= 60) return { key: 'c', mark: 'C', label: 'Explorer' };
-  if (pct >= 40) return { key: 'd', mark: 'D', label: 'Student' };
-  return { key: 'e', mark: 'E', label: 'Rookie' };
+function rankFor(pct) {
+  if (pct >= 95) return { key: 'a', label: 'Mapmaster' };
+  if (pct >= 80) return { key: 'b', label: 'Explorer' };
+  if (pct >= 60) return { key: 'c', label: 'Wayfarer' };
+  if (pct >= 40) return { key: 'd', label: 'Scout' };
+  return { key: 'e', label: 'Rookie' };
 }
