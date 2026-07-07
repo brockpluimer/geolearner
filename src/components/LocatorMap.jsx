@@ -14,7 +14,10 @@ const W = 440;
 const H = 280;
 const FILL = 0.4; // target country ≈ this fraction of the frame
 const MIN_K = 1.1;
-const MAX_K = 42;
+const MAX_K = 64;
+// Below this on-screen size a target is too small to read as a shape, so we ring
+// it with a constant-size marker that points to exactly where it sits.
+const MARKER_BELOW = 46;
 const MAX_COUNTRY_LABELS = 7;
 const MAX_WATER_LABELS = 3;
 
@@ -68,9 +71,9 @@ function angularSize(feature) {
 }
 
 export default function LocatorMap({ cca3, className = '' }) {
-  const { transform, targetD, countryLabels, waterLabels } = useMemo(() => {
+  const { transform, targetD, countryLabels, waterLabels, marker } = useMemo(() => {
     const feat = feature110[cca3] || featureByCca3[cca3];
-    if (!feat) return { transform: '', targetD: null, countryLabels: [], waterLabels: [] };
+    if (!feat) return { transform: '', targetD: null, countryLabels: [], waterLabels: [], marker: null };
     const land = mainland(feat);
     const [dw, dh] = angularSize(land);
     const c = geoCentroid(land);
@@ -85,6 +88,14 @@ export default function LocatorMap({ cca3, className = '' }) {
     const k = Math.max(MIN_K, Math.min(MAX_K, FILL * Math.min(W / projW, H / projH)));
     const tx = W / 2 - k * cx;
     const ty = H / 2 - k * cy;
+
+    // Micro-states (San Marino, Monaco…) can't be zoomed enough to read as a
+    // shape without losing all surrounding context, so past the zoom clamp they
+    // stay a near-invisible speck. Ring them so it's clear where the card points.
+    // The target centroid always lands dead-centre of the frame (W/2, H/2).
+    const targetPx = Math.max(projW, projH) * k;
+    const marker =
+      targetPx < MARKER_BELOW ? { r: Math.max(13, targetPx / 2 + 9) } : null;
 
     // Project each anchor into screen space and keep the ones on-frame.
     const pad = 6;
@@ -108,6 +119,7 @@ export default function LocatorMap({ cca3, className = '' }) {
       targetD: basePath(feat),
       countryLabels: countries,
       waterLabels: waters,
+      marker,
     };
   }, [cca3]);
 
@@ -126,7 +138,15 @@ export default function LocatorMap({ cca3, className = '' }) {
           </g>
         )}
       </g>
-      {/* Labels sit outside the scaled group so they stay a constant size. */}
+      {/* The marker and labels sit outside the scaled group so they stay a
+          constant size regardless of how far the region is zoomed. */}
+      {marker && (
+        <g className="locator-marker" transform={`translate(${W / 2} ${H / 2})`}>
+          <circle className="locator-marker-halo" r={(marker.r + 2).toFixed(1)} />
+          <circle className="locator-marker-ring" r={marker.r.toFixed(1)} />
+          <circle className="locator-marker-dot" r="2.6" />
+        </g>
+      )}
       <g className="locator-labels">
         {waterLabels.map((l, i) => (
           <text key={`w${i}`} className="locator-wlabel" x={l.sx.toFixed(1)} y={l.sy.toFixed(1)}>

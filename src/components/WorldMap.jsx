@@ -150,6 +150,10 @@ export default function WorldMap({
   const detail = t.k >= DETAIL_THRESHOLD ? 'hi' : 'lo';
   const paths = PATHS[detail];
   const hoveredCca3 = hovered?.cca3 ?? null;
+  // Labels sit outside the zoom transform (constant ink weight), so on their own
+  // they'd stay the same tiny size no matter how far you zoom in. Grow them with
+  // zoom — gently, and capped — so a zoomed-in region is actually readable.
+  const labelScale = Math.min(2.1, Math.max(1, Math.pow(t.k, 0.38)));
 
   // Set up the zoom behavior once. All transform changes flow through here.
   useEffect(() => {
@@ -334,6 +338,7 @@ export default function WorldMap({
         role="img"
         aria-label="World map"
         preserveAspectRatio="xMidYMid meet"
+        style={{ '--label-scale': labelScale.toFixed(3) }}
       >
         <g transform={`translate(${t.x} ${t.y}) scale(${t.k})`}>{pathEls}</g>
         <g className="water-layer">{waterLayer}</g>

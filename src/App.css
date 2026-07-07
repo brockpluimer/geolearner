@@ -683,17 +683,17 @@
   stroke-linejoin: round;
 }
 .water-label--ocean {
-  font-size: 15px;
+  font-size: calc(15px * var(--label-scale, 1));
   font-style: normal;
   letter-spacing: 0.28em;
   text-transform: uppercase;
   fill: var(--water-ink-strong);
 }
 .water-label--sea {
-  font-size: 12px;
+  font-size: calc(12px * var(--label-scale, 1));
 }
 .water-label--minor {
-  font-size: 10px;
+  font-size: calc(10px * var(--label-scale, 1));
   opacity: 0.85;
 }
 
@@ -703,7 +703,7 @@
 }
 .country-label {
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: calc(14px * var(--label-scale, 1));
   font-weight: 700;
   letter-spacing: 0.04em;
   fill: var(--ink);
@@ -735,7 +735,7 @@
 }
 .city-label {
   font-family: var(--sans);
-  font-size: 10px;
+  font-size: calc(10px * var(--label-scale, 1));
   font-weight: 500;
   fill: var(--ink-soft);
   paint-order: stroke;
@@ -1327,6 +1327,25 @@
   stroke: var(--ink);
   stroke-width: 0.8;
   vector-effect: non-scaling-stroke;
+}
+.locator-marker {
+  pointer-events: none;
+}
+.locator-marker-halo {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 4.5;
+  opacity: 0.9;
+}
+.locator-marker-ring {
+  fill: none;
+  stroke: #c0442f;
+  stroke-width: 2.4;
+}
+.locator-marker-dot {
+  fill: #c0442f;
+  stroke: var(--paper);
+  stroke-width: 1;
 }
 .locator-labels {
   pointer-events: none;
